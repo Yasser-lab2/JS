@@ -109,115 +109,123 @@ function renderCards() {
 
 renderCards();
 
-//###################################  Transfer  #####################################################//
-
-// check function - Using Promises
+// **************************************transfer***************************************************//
 
 function checkUser(numcompte) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const destinataire = finduserbyaccount(numcompte);
-      if (destinataire) {
-        resolve(destinataire);
-      } else {
-        reject(new Error("Destinataire non trouvé"));
-      }
-    }, 500);
-  });
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            const beneficiary = finduserbyaccount(numcompte);
+            if (beneficiary) {
+                resolve(beneficiary); // Succès
+            } else {
+                reject("Beneficiary not found"); // Échec
+            }
+        }, 2000);
+    });
 }
 
-function checkSolde(exp, amount) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const solde = exp.wallet.balance;
-      if (solde >= amount) {
-        resolve("Solde suffisant");
-      } else {
-        reject(new Error("Solde insuffisant"));
-      }
-    }, 400);
-  });
+function checkSolde(expediteur, amount) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            if (expediteur.wallet.balance >= amount) {
+                resolve("Sufficient balance");
+            } else {
+                reject("Insufficient balance");
+            }
+        }, 3000);
+    });
 }
 
-function updateSolde(exp, destinataire, amount) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {  
-      exp.wallet.balance -= amount;
-      destinataire.wallet.balance += amount;
-      resolve("Solde mis à jour");
-    }, 300);
-  });
+function updateSolde(expediteur, destinataire, amount) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            expediteur.wallet.balance -= amount;
+            destinataire.wallet.balance += amount;
+            resolve("Update balance done");
+        }, 200);
+    });
 }
 
-function addtransactions(exp, destinataire, amount) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => { 
-      // Transaction pour l'expéditeur (débit)
-      const transactionDebit = {
-        id: Date.now(),
-        type: "debit",
-        amount: amount,
-        from: exp.name,
-        to: destinataire.name,
-        date: new Date().toLocaleDateString()
-      };
-
-      //Transaction pour le destinataire (crédit)
-      const transactionCredit = {
-        id: Date.now() + 1,
-        type: "credit",
-        amount: amount,
-        from: exp.name,
-        to: destinataire.name,
-        date: new Date().toLocaleDateString()
-      };
-
-      exp.wallet.transactions.push(transactionDebit);
-      destinataire.wallet.transactions.push(transactionCredit);
-      renderDashboard();
-      resolve("Transaction enregistrée");
-    }, 200);
-  });
+function addtransactions(expediteur, destinataire, amount) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            const dateStr = new Date().toLocaleString(); 
+            
+            // create credit transaction
+            const credit = {
+                id: Date.now(),
+                type: "credit",
+                amount: amount,
+                date: dateStr,
+                from: expediteur.name
+            };
+            
+            // create debit transaction
+            const debit = {
+                id: Date.now() + 1, 
+                type: "debit",
+                amount: amount,
+                date: dateStr,
+                to: destinataire.name,
+            };
+            
+            expediteur.wallet.transactions.push(debit);
+            destinataire.wallet.transactions.push(credit);
+            resolve("Transaction added successfully");
+        }, 3000);
+    });
 }
 
+// Utilisation de .then() et .catch() au lieu de async/await
+function transfer(expediteur, numcompte, amount) {
+    console.log("DÉBUT DU TRANSFERT...");
+    
+    // Variable pour stocker le destinataire afin d'y accéder dans toute la chaîne de promesses
+    let destinataireTrouve;
 
-export async function transferer(exp, numcompte, amount) {
-  try {
-    console.log("\n DÉBUT DU TRANSFERT ");
-
-    //Étape 1: Vérifier le destinataire
-    const destinataire = await checkUser(numcompte);
-    console.log("Étape 1: Destinataire trouvé -", destinataire.name);
-
-    //Étape 2: Vérifier le solde
-    const soldemessage = await checkSolde(exp, amount);
-    console.log(" Étape 2:", soldemessage);
-
-    //Étape 3: Mettre à jour les soldes
-    const updatemessage = await updateSolde(exp, destinataire, amount);
-    console.log(" Étape 3:", updatemessage);
-
-    //Étape 4: Enregistrer la transaction
-    const transactionMessage = await addtransactions(exp, destinataire, amount);
-    console.log(" Étape 4:", transactionMessage);
-    console.log(`Transfert de ${amount} réussi!`);
-  } catch (error) {
-    console.error("Erreur lors du transfert:", error.message);
-  }
+    checkUser(numcompte)
+        .then((destinataire) => {
+            console.log("Étape 1: Destinataire trouvé -", destinataire.name);
+            destinataireTrouve = destinataire; // On sauvegarde le destinataire
+            
+            // On retourne la promesse suivante
+            return checkSolde(expediteur, amount);
+        })
+        .then((soldemessage) => {
+            console.log("Étape 2:", soldemessage);
+            
+            // On retourne la promesse suivante en utilisant le destinataire sauvegardé
+            return updateSolde(expediteur, destinataireTrouve, amount);
+        })
+        .then((updatemessage) => {
+            console.log("Étape 3:", updatemessage);
+            
+            // On retourne la dernière promesse
+            return addtransactions(expediteur, destinataireTrouve, amount);
+        })
+        .then((addtransactionMessage) => {
+            console.log("Étape 4:", addtransactionMessage);
+            console.log(`Transfert de ${amount} MAD réussi!`);
+            
+            // Optionnel : Re-rendre le dashboard
+            renderDashboard(); 
+        })
+        .catch((erreur) => {
+            // S'il y a un reject() dans n'importe laquelle des fonctions au-dessus, 
+            // le code saute directement ici.
+            console.error("Échec du transfert :", erreur);
+        });
 }
-
 
 function handleTransfer(e) {
- e.preventDefault();
-  const beneficiaryId = document.getElementById("beneficiary").value;
-  const beneficiaryAccount=findbeneficiarieByid(user.id,beneficiaryId).account;
-  const sourceCard = document.getElementById("sourceCard").value;
+    e.preventDefault();
+    const beneficiaryId = document.getElementById("beneficiary").value;
+    const beneficiaryAccount = findbeneficiarieByid(user.id, beneficiaryId).account;
+    
+    const amount = Number(document.getElementById("amount").value);
 
-  const amount = Number(document.getElementById("amount").value);
-
-  transferer(user, beneficiaryAccount, amount);
+    transfer(user, beneficiaryAccount, amount);
 }
-
 /*
   function func1(number,callback){
     console.log("start function");
