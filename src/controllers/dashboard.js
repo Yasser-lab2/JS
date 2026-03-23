@@ -109,16 +109,16 @@ function renderCards() {
 
 renderCards();
 
-// **************************************transfer***************************************************//
+// transfer
 
 function checkUser(numcompte) {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
             const beneficiary = finduserbyaccount(numcompte);
             if (beneficiary) {
-                resolve(beneficiary); // Succès
+                resolve(beneficiary); 
             } else {
-                reject("Beneficiary not found"); // Échec
+                reject("Beneficiary not found"); 
             }
         }, 2000);
     });
@@ -175,20 +175,15 @@ function addtransactions(expediteur, destinataire, amount) {
         }, 3000);
     });
 }
-
-// Utilisation de .then() et .catch() au lieu de async/await
 function transfer(expediteur, numcompte, amount) {
     console.log("DÉBUT DU TRANSFERT...");
-    
-    // Variable pour stocker le destinataire afin d'y accéder dans toute la chaîne de promesses
+  
     let destinataireTrouve;
 
     checkUser(numcompte)
         .then((destinataire) => {
             console.log("Étape 1: Destinataire trouvé -", destinataire.name);
-            destinataireTrouve = destinataire; // On sauvegarde le destinataire
-            
-            // On retourne la promesse suivante
+            destinataireTrouve = destinataire; 
             return checkSolde(expediteur, amount);
         })
         .then((soldemessage) => {
@@ -199,20 +194,15 @@ function transfer(expediteur, numcompte, amount) {
         })
         .then((updatemessage) => {
             console.log("Étape 3:", updatemessage);
-            
-            // On retourne la dernière promesse
             return addtransactions(expediteur, destinataireTrouve, amount);
         })
         .then((addtransactionMessage) => {
             console.log("Étape 4:", addtransactionMessage);
             console.log(`Transfert de ${amount} MAD réussi!`);
             
-            // Optionnel : Re-rendre le dashboard
             renderDashboard(); 
         })
         .catch((erreur) => {
-            // S'il y a un reject() dans n'importe laquelle des fonctions au-dessus, 
-            // le code saute directement ici.
             console.error("Échec du transfert :", erreur);
         });
 }
