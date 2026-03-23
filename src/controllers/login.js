@@ -1,42 +1,32 @@
-import finduserbymail from "./database.js";
 
-const mail = document.getElementById("mail");
-const password = document.getElementById("password");
-const submitbtn = document.getElementById("submitbtn");
-const display = document.getElementById("display");
-const error = document.getElementById("error");
+import {finduserbymail} from "../Model/database.js";
 
-// Toggle password visibility
-display.addEventListener("click", () => {
-  if (password.type === "password") {
-    password.type = "text";
-    display.textContent = "🙈";
-  } else {
-    password.type = "password";
-    display.textContent = "👁";
-  }
-});
+// recuperation des elements DOM
+const mailInput = document.getElementById("mail");
+const passwordInput  = document.getElementById("password");
+const submitBtn = document.getElementById("submitbtn");
+const display   = document.getElementById("display");
+// event listener sur le bouton Se connecter
+submitBtn.addEventListener("click", handleSubmit);
 
-// Handle login
-submitbtn.addEventListener("click", () => {
-  const emailValue = mail.value.trim();
-  const passwordValue = password.value.trim();
+function handleSubmit() {
+    let mail = mailInput.value;
+    let password = passwordInput.value;
 
-  // Basic validation
-  if (!emailValue || !passwordValue) {
-    error.textContent = "Veuillez remplir tous les champs.";
-    error.style.color = "red";
-    return;
-  }
+    if (!mail || password === "") {
+        alert("Bad credentials.");
+    } else {
+        submitBtn.textContent = "Checking!!!";
+        const user = finduserbymail(mail, password);
 
-  const user = finduserbymail(emailValue, passwordValue);
-
-  if (user) {
-    error.textContent = "";
-    sessionStorage.setItem("loggedUser", JSON.stringify(user));
-    window.location.href = "/src/view/dashboard.html";
-  } else {
-    error.textContent = "Email ou mot de passe incorrect.";
-    error.style.color = "red";
-  }
-});
+        setTimeout(() => {
+            if (user) {
+                sessionStorage.setItem("currentUser", JSON.stringify(user));
+                document.location = "dashboard.html";
+            } else {
+                alert("Bad credentials.");
+                submitBtn.textContent = "Se connecter";
+            }
+        }, 2000);
+    }
+}
