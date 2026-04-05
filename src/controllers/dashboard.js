@@ -231,7 +231,7 @@ function handleTransfer(e) {
     const beneficiaryAccount = findbeneficiarieByid(user.id, beneficiaryId).account;
     
     const amount = Number(document.getElementById("amount").value);
-    
+    closeTransfer();
     transfer(user, beneficiaryAccount, amount);
 }
 
