@@ -202,34 +202,27 @@ function addtransactions(expediteur, destinataire, amount) {
         }, 3000);
     });
 }
-function transfer(expediteur, numcompte, amount) {
+async function transfer(expediteur, numcompte, amount) {
     console.log("DÉBUT DU TRANSFERT...");
-  
-    let destinataireTrouve;
 
-    checkUser(numcompte)
-        .then((destinataire) => {
-            console.log("Étape 1: Destinataire trouvé -", destinataire.name);
-            destinataireTrouve = destinataire; 
-            return checkSolde(expediteur, amount);
-        })
-        .then((soldemessage) => {
-            console.log("Étape 2:", soldemessage);
-            return updateSolde(expediteur, destinataireTrouve, amount);
-        })
-        .then((updatemessage) => {
-            console.log("Étape 3:", updatemessage);
-            return addtransactions(expediteur, destinataireTrouve, amount);
-        })
-        .then((addtransactionMessage) => {
-            console.log("Étape 4:", addtransactionMessage);
-            console.log(`Transfert de ${amount} MAD réussi!`);
-            
-            renderDashboard(); 
-        })
-        .catch((erreur) => {
-            console.error("Échec du transfert :", erreur);
-        });
+    try {
+        const destinataire = await checkUser(numcompte);
+        console.log("Étape 1: Destinataire trouvé -", destinataire.name);
+
+        const soldemessage = await checkSolde(expediteur, amount);
+        console.log("Étape 2:", soldemessage);
+
+        const updatemessage = await updateSolde(expediteur, destinataire, amount);
+        console.log("Étape 3:", updatemessage);
+
+        const addtransactionMessage = await addtransactions(expediteur, destinataire, amount);
+        console.log("Étape 4:", addtransactionMessage);
+        console.log(`Transfert de ${amount} MAD réussi!`);
+
+        renderDashboard();
+    } catch (erreur) {
+        console.error("Échec du transfert :", erreur);
+    }
 }
 
 function handleTransfer(e) {
@@ -306,40 +299,34 @@ function validateRechargeAmount(amount) {
     });
 }
 
-function recharge(amount, cardNum) {
+async function recharge(amount, cardNum) {
     console.log("DÉBUT DE LA RECHARGE...");
-    let cardTrouve;
 
-    checkRechargeUser()
-        .then(() => validateRechargeAmount(amount))
-        .then((validationMessage) => {
-            console.log("Validation montant:", validationMessage);
-            return checkCard(cardNum);
-        })
-        .then((card) => {
-            console.log("Étape 1: Carte trouvée -", card.type + "****" + card.numcards);
-            cardTrouve = card; 
-            return effectuer_recharge(amount, cardTrouve);
-        } )
-        .then((rechargeMessage) => {
-            console.log("Étape 2:", rechargeMessage);
-            return addRechargeTransaction(amount);
-        })
-        .then((addTransactionMessage) => {
-            console.log("Étape 3:", addTransactionMessage);
-            console.log(`Recharge de ${amount} MAD réussie!`);
-            renderDashboard(); 
-        })
-        .catch((erreur) => {
-            console.error("Échec de la recharge :", erreur);
-            addRechargeTransaction(amount, "failed")
-                .then(() => {
-                    renderDashboard();
-                })
-                .catch((transactionError) => {
-                    console.error("Échec d'enregistrement de la transaction échouée :", transactionError);
-                });
-        });
+    try {
+        await checkRechargeUser();
+        const validationMessage = await validateRechargeAmount(amount);
+        console.log("Validation montant:", validationMessage);
+
+        const card = await checkCard(cardNum);
+        console.log("Étape 1: Carte trouvée -", card.type + "****" + card.numcards);
+
+        const rechargeMessage = await effectuer_recharge(amount, card);
+        console.log("Étape 2:", rechargeMessage);
+
+        const addTransactionMessage = await addRechargeTransaction(amount);
+        console.log("Étape 3:", addTransactionMessage);
+        console.log(`Recharge de ${amount} MAD réussie!`);
+
+        renderDashboard();
+    } catch (erreur) {
+        console.error("Échec de la recharge :", erreur);
+        try {
+            await addRechargeTransaction(amount, "failed");
+            renderDashboard();
+        } catch (transactionError) {
+            console.error("Échec d'enregistrement de la transaction échouée :", transactionError);
+        }
+    }
 }
 
 function handleRecharge(e){
